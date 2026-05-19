@@ -21,10 +21,10 @@ import re
 
 import requests
 
-from sopel import plugin
+from sopel import plugin, tools
 
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = tools.get_logger('xkcd')
 PLUGIN_OUTPUT_PREFIX = '[xkcd] '
 
 # used with permission of site owner
