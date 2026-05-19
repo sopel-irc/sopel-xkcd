@@ -28,23 +28,23 @@ LOGGER = tools.get_logger('xkcd')
 PLUGIN_OUTPUT_PREFIX = '[xkcd] '
 
 # used with permission of site owner
-# https://twitter.com/Dmdboi/status/1589202274999767041
-SEARCHXKCD_API = 'https://gq67pznq1k.execute-api.eu-west-1.amazonaws.com/search'
+# https://bsky.app/profile/jasonbosco.bsky.social/post/3mm7dsbqkjk2n
+FINDXKCD_API = 'https://qtg5aekc2iosjh93p.a1.typesense.net/multi_search'
 
 
-class SearchXkcdError(Exception):
+class FindXkcdError(Exception):
     """Generic exception to raise if there was a problem contacting the API."""
 
 
-class SearchConnectionError(SearchXkcdError):
+class SearchConnectionError(FindXkcdError):
     """Couldn't reach the search endpoint."""
 
 
-class ResponseFormatError(SearchXkcdError):
+class ResponseFormatError(FindXkcdError):
     """Response format couldn't be parsed."""
 
 
-class NoResultsError(SearchXkcdError):
+class NoResultsError(FindXkcdError):
     """Response could be parsed, but it was empty."""
 
 
@@ -58,27 +58,50 @@ def get_info(number=None):
     return data
 
 
-def searchxkcd_search(query):
-    parameters = {
-        'q': query,
-        'page': 0,
+def findxkcd_search(query):
+    params = {
+        "use_cache": "true",
+        "x-typesense-api-key": "8hLCPSQTYcBuK29zY5q6Xhin7ONxHy99",
+    }
+    payload = {
+        "searches": [
+            {
+                "query_by": "title,altTitle,transcript,topics,embedding",
+                "query_by_weights": "127,80,80,1,1",
+                "num_typos": 1,
+                "exclude_fields": "embedding",
+                "vector_query": "embedding:([], k: 30, distance_threshold: 0.1, alpha: 0.9)",
+                "highlight_full_fields": "title,altTitle,transcript,topics,embedding",
+                "collection": "xkcd",
+                "q": query,
+                "facet_by": "publishDateYear,topics",
+                "max_facet_values": 100,
+                "page": 1,
+                "per_page": 5,
+            }
+        ]
     }
     try:
-        response = requests.post(SEARCHXKCD_API, params=parameters)
+        response = requests.post(
+            FINDXKCD_API,
+            params=params,
+            json=payload,
+            timeout=5,
+        )
     except requests.exceptions.ConnectionError as e:
-        LOGGER.debug("Unable to reach searchxkcd API: %s", e)
+        LOGGER.debug("Unable to reach findxkcd API: %s", e)
         raise SearchConnectionError(str(e))
     except Exception as e:
-        LOGGER.debug("Unexpected error calling searchxkcd API: %s", e)
-        raise SearchXkcdError(str(e))
+        LOGGER.debug("Unexpected error calling findxkcd API: %s", e)
+        raise FindXkcdError(str(e))
 
     try:
-        hits = response.json()['results']['hits']
+        hits = response.json()['results'][0]['hits']
         if not hits:
             raise NoResultsError
-        first = hits[0]['objectID']
+        first = hits[0]['document']['id']
     except (JSONDecodeError, LookupError):
-        msg = "Data format from searchxkcd API could not be understood."
+        msg = "Data format from findxkcd API could not be understood."
         LOGGER.warning(msg)
         LOGGER.debug("Response text: %r", response.text)
         raise ResponseFormatError(msg)
@@ -99,7 +122,7 @@ def xkcd(bot, trigger):
       * If numeric input is provided it will return that comic, or the
         nth-latest comic if the number is negative
       * If non-numeric input is provided it will return the first search result
-        for those keywords from searchxkcd.com
+        for those keywords from findxkcd.com
 
     """
     # get latest comic, for random selection and validating numeric input
@@ -125,11 +148,11 @@ def xkcd(bot, trigger):
                 requested = latest
             else:
                 try:
-                    number = searchxkcd_search(query)
+                    number = findxkcd_search(query)
                 except NoResultsError:
                     bot.reply("Sorry, I couldn't find any comics for that query.")
                     return
-                except SearchXkcdError:
+                except FindXkcdError:
                     bot.reply(
                         "A technical problem prevented me from searching. "
                         "Please ask my owner to check my logs.")
