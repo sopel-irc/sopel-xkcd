@@ -2,6 +2,8 @@
 
 ### 1.0.0
 
-Initial release. Straight copy of [Sopel 8.0's version][upstream-src].
+Initial release. Straight copy of [Sopel 8.0's version][upstream-src]
+(with minor tweaks to make it behave correctly outside of
+`sopel.builtins`).
 
 [//]: # (upstream-src is defined in README.md)
