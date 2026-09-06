@@ -16,7 +16,7 @@ readme = { file=["README.md", "NEWS"], content-type="text/markdown" }
 
 [project]
 name = "sopel-xkcd"
-version = "1.0.0"
+version = "1.1.0"
 description = "xkcd plugin for Sopel IRC bots."
 keywords = [
   "sopel",

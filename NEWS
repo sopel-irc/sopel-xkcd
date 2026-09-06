@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.1.0
+
+Replaced defunct search backend with a new one.
+
 ### 1.0.0
 
 Initial release. Straight copy of [Sopel 8.0's version][upstream-src]
